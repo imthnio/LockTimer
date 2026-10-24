@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>定时锁屏</title>
-<!-- UI 基于 Lucian UX/UI Prompt #067 Lockout countdown / #047 Period segmented control / #018 Rolling quantity stepper
+<!-- UI 基于 Lucian UX/UI Prompt #067 Lockout countdown / #047 Period segmented control / #018 Rolling quantity stepper / #039 Sliding pill tabs
      MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/ -->
 <style>
 /* Lucian UX/UI Prompt theme tokens · MIT License (c) 2026 Seokwoooo */
@@ -48,23 +48,43 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--ux-surface)}
 body{-webkit-user-select:none;user-select:none;cursor:default}
 button{cursor:default}
 
-.app{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;padding:38px 24px 18px}
+.app{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;padding:48px 24px 18px;--g1:var(--ux-accent);--g2:var(--ux-accent-2)}
+.app.is-off{--g1:var(--ux-danger);--g2:var(--ux-warn)}
 .app::before{content:"";position:absolute;left:50%;top:22px;width:300px;height:240px;margin-left:-150px;border-radius:50%;
   background:radial-gradient(closest-side,var(--ux-accent-soft),transparent);pointer-events:none;transition:opacity .6s;opacity:.0}
 .app.is-run::before{opacity:1}
 .app.is-warn::before{background:radial-gradient(closest-side,color-mix(in srgb,var(--ux-warn) 16%,transparent),transparent)}
+.app.is-off::before{background:radial-gradient(closest-side,color-mix(in srgb,var(--ux-danger) 13%,transparent),transparent)}
+
+/* ---------- 类型切换（#039 Sliding pill tabs） ---------- */
+.modes{position:absolute;top:7px;left:50%;z-index:2;display:grid;grid-template-columns:1fr 1fr;width:168px;margin-left:-84px;padding:3px;border-radius:999px;background:var(--ux-surface-2);box-shadow:inset 0 0 0 1px var(--ux-line);transition:opacity .3s}
+.mknob{position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:999px;background:var(--ux-ink);transition:transform .5s var(--ux-spring),background-color .4s}
+.modes[data-v="shutdown"] .mknob{transform:translateX(100%);background:var(--ux-danger)}
+.mode{position:relative;display:flex;align-items:center;justify-content:center;gap:5px;height:26px;border:0;padding:0;border-radius:999px;background:none;font-size:12.5px;font-weight:700;color:var(--ux-ink-3);transition:color .3s,transform .3s var(--ux-spring)}
+.mode:hover{color:var(--ux-ink-2)}
+.mode:active{transform:scale(.94)}
+.mode[aria-selected="true"]{color:var(--ux-surface)}
+.mode svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.app.is-run .modes{opacity:.5;pointer-events:none}
 
 /* ---------- 表盘（#067） ---------- */
 .dial{position:relative;width:196px;height:196px;flex:none}
 .dial>svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
 .dial circle{fill:none;stroke-width:8}
 .dial .t{stroke:var(--ux-surface-3)}
-.dial .p{stroke:url(#ring);stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:calc(100 - var(--p,1) * 100)}
+.dial .p{stroke:url(#ring);transition:stroke .4s;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:calc(100 - var(--p,1) * 100)}
 .app:not(.is-run) .dial .p{transition:stroke-dashoffset .6s var(--ux-ease)}
 .app.is-warn .dial .p{stroke:var(--ux-warn)}
+.app.is-off.is-warn .dial .p{stroke:var(--ux-danger)}
 .ticks{position:absolute;inset:18px;border-radius:50%;background:repeating-conic-gradient(var(--ux-line-2) 0 1deg,transparent 1deg 15deg);
   -webkit-mask:radial-gradient(circle,transparent 62%,#000 63%,#000 68%,transparent 69%);mask:radial-gradient(circle,transparent 62%,#000 63%,#000 68%,transparent 69%)}
-.lock{position:absolute;left:50%;top:44px;width:44px;height:50px;margin-left:-22px}
+.lock,.pwr{position:absolute;left:50%;top:44px;width:44px;height:50px;margin-left:-22px;transition:opacity .3s var(--ux-ease),scale .5s var(--ux-spring),rotate .5s var(--ux-spring)}
+.pwr{opacity:0;scale:.5;rotate:-90deg}
+.app.is-off .lock{opacity:0;scale:.5}
+.app.is-off .pwr{opacity:1;scale:1;rotate:0deg}
+.pwr svg{width:100%;height:100%;overflow:visible}
+.pwr path{fill:none;stroke:var(--ux-ink);stroke-width:6;stroke-linecap:round;transition:stroke .4s}
+.app.is-off.is-run .pwr path{stroke:var(--ux-danger)}
 .lock svg{width:100%;height:100%;overflow:visible}
 .sh{fill:none;stroke:var(--ux-ink);stroke-width:6;stroke-linecap:round;transform-origin:46px 30px;transition:transform .7s var(--ux-spring),stroke .4s;transform:translateY(-8px) rotate(28deg)}
 .app.is-run .sh{transform:none}
@@ -72,7 +92,7 @@ button{cursor:default}
 .kh{fill:var(--ux-surface)}
 .app.is-warn .sh{stroke:var(--ux-warn)}
 .app.is-warn .bd{fill:var(--ux-warn)}
-.app.is-warn .lock{animation:nudge 1s var(--ux-ease) infinite}
+.app.is-warn .lock,.app.is-warn .pwr{animation:nudge 1s var(--ux-ease) infinite}
 @keyframes nudge{0%,60%,100%{transform:none}70%{transform:rotate(-8deg)}80%{transform:rotate(7deg)}90%{transform:rotate(-4deg)}}
 .time{position:absolute;left:0;right:0;top:104px;display:flex;justify-content:center;font-size:30px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .time span,.time b{display:flex;flex-direction:column;height:36px;overflow:hidden}
@@ -128,6 +148,8 @@ button{cursor:default}
 .chip:hover{background:var(--ux-surface-2)}
 .chip:active{transform:scale(.94)}
 .chip.on{background:var(--ux-accent-soft);color:var(--ux-accent);box-shadow:inset 0 0 0 1.5px transparent}
+.app.is-off .chip.on{background:color-mix(in srgb,var(--ux-danger) 12%,transparent);color:var(--ux-danger)}
+.app.is-off .stepper:focus-within{box-shadow:inset 0 0 0 1.5px var(--ux-danger),0 0 0 4px color-mix(in srgb,var(--ux-danger) 14%,transparent)}
 
 /* 运行中 */
 .eta{display:flex;align-items:flex-end;justify-content:space-between;height:110px;padding:18px 20px;border-radius:22px;background:var(--ux-surface-2);box-shadow:inset 0 0 0 1px var(--ux-line)}
@@ -143,6 +165,7 @@ button{cursor:default}
 .go:active{transform:scale(.97)}
 .app.is-run .go{background:none;color:var(--ux-ink);box-shadow:inset 0 0 0 1.5px var(--ux-line-2)}
 .app.is-run .go:hover{background:var(--ux-surface-2)}
+.app.is-off:not(.is-run) .go{background:var(--ux-danger);color:#fff}
 
 /* ---------- 底栏 ---------- */
 .foot{width:100%;margin-top:auto;padding-top:14px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--ux-line)}
@@ -150,23 +173,31 @@ button{cursor:default}
 .sw i{position:relative;width:36px;height:22px;border-radius:999px;background:var(--ux-surface-3);transition:background-color .3s}
 .sw i::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .45s var(--ux-spring)}
 .sw[aria-checked="true"] i{background:var(--ux-accent)}
+.app.is-off .sw[aria-checked="true"] i{background:var(--ux-danger)}
 .sw[aria-checked="true"] i::after{transform:translateX(14px)}
 .now{display:flex;align-items:center;gap:6px;border:0;padding:6px 10px;margin-right:-10px;border-radius:10px;background:none;font-size:13px;font-weight:650;color:var(--ux-ink-2);transition:background-color .25s,color .25s}
 .now:hover{background:var(--ux-surface-2);color:var(--ux-ink)}
+.app.is-off .now:hover{color:var(--ux-danger)}
 .now svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 </style>
 </head>
 <body>
 <main class="ux app">
+  <nav class="modes" role="tablist" aria-label="类型" data-v="lock">
+    <span class="mknob" aria-hidden="true"></span>
+    <button class="mode" type="button" role="tab" data-m="lock" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>锁屏</button>
+    <button class="mode" type="button" role="tab" data-m="shutdown" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 6.5a7.5 7.5 0 1 0 9 0"/><path d="M12 3v8"/></svg>关机</button>
+  </nav>
   <section class="dial" role="timer" aria-live="off">
     <svg viewBox="0 0 168 168" aria-hidden="true">
       <defs><linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" style="stop-color:var(--ux-accent)"/><stop offset="1" style="stop-color:var(--ux-accent-2)"/>
+        <stop offset="0" style="stop-color:var(--g1)"/><stop offset="1" style="stop-color:var(--g2)"/>
       </linearGradient></defs>
       <circle class="t" cx="84" cy="84" r="78"/><circle class="p" cx="84" cy="84" r="78" pathLength="100"/>
     </svg>
     <span class="ticks" aria-hidden="true"></span>
     <span class="lock" aria-hidden="true"><svg viewBox="0 0 62 70"><path class="sh" d="M16 32V22a15 15 0 0 1 30 0v10"/><rect class="bd" x="6" y="30" width="50" height="38" rx="10"/><circle class="kh" cx="31" cy="47" r="5"/><rect class="kh" x="29" y="49" width="4" height="9" rx="2"/></svg></span>
+    <span class="pwr" aria-hidden="true"><svg viewBox="0 0 62 70"><path d="M45.1 23.2A22 22 0 1 1 16.9 23.2"/><path d="M31 12v26"/></svg></span>
     <span class="time" aria-hidden="true"></span>
     <span class="tlabel">时长</span>
   </section>
@@ -195,7 +226,7 @@ button{cursor:default}
 
     <div class="panel run" inert>
       <div class="eta">
-        <div><small>预计锁屏</small><b id="eta">--:--</b></div>
+        <div><small id="etaLab">预计锁屏</small><b id="eta">--:--</b></div>
         <div class="r"><small id="etaDay">今天</small><span id="etaTotal"></span></div>
       </div>
       <div class="chips">
@@ -211,7 +242,7 @@ button{cursor:default}
 
   <footer class="foot">
     <button class="sw" id="warnSw" type="button" role="switch" aria-checked="true"><i aria-hidden="true"></i>锁屏前 1 分钟提醒</button>
-    <button class="now" id="lockNow" type="button"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>立即锁屏</button>
+    <button class="now" id="now" type="button"></button>
   </footer>
 </main>
 
@@ -224,7 +255,12 @@ button{cursor:default}
   var eta = $('#eta'), etaDay = $('#etaDay'), etaTotal = $('#etaTotal');
   var presets = [].slice.call(document.querySelectorAll('.preset')), exts = [].slice.call(document.querySelectorAll('.ext'));
   var MAX = 99 * 3600;
-  var S = { running: false, endMs: 0, totalSec: 0, warn: true }, unit = 'min', raf = 0, shown = '', synced = false;
+  var modes = $('.modes'), tabs = [].slice.call(modes.querySelectorAll('.mode')), nowBtn = $('#now'), etaLab = $('#etaLab');
+  var S = { running: false, endMs: 0, totalSec: 0, warn: true, authorized: false }, unit = 'min', mode = 'lock', raf = 0, shown = '', synced = false;
+  var ICON = {
+    lock: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+    shutdown: '<svg viewBox="0 0 24 24"><path d="M7.5 6.5a7.5 7.5 0 1 0 9 0"/><path d="M12 3v8"/></svg>'
+  };
 
   function post(m) { try { window.webkit.messageHandlers.app.postMessage(m); } catch (e) {} }
   function p2(n) { return ('0' + n).slice(-2); }
@@ -271,16 +307,18 @@ button{cursor:default}
     el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap');
   }
   function setHead() {
-    var warn = app.classList.contains('is-warn');
+    var warn = app.classList.contains('is-warn'), off = mode === 'shutdown';
     if (S.running) {
-      setText(title, warn ? '即将锁屏' : '定时已开启');
-      setText(sub, warn ? '不到 1 分钟，记得保存手头的工作' : '到时间后会自动锁定屏幕');
+      setText(title, warn ? (off ? '即将关机' : '即将锁屏') : (off ? '关机倒计时' : '定时已开启'));
+      setText(sub, off ? (warn ? '不到 1 分钟，请立即保存工作' : '到时间将直接关机，未保存的内容会丢失')
+                       : (warn ? '不到 1 分钟，记得保存手头的工作' : '到时间后会自动锁定屏幕'));
     } else {
       var sec = parse();
-      setText(title, '定时锁屏');
+      setText(title, off ? '定时关机' : '定时锁屏');
       setText(sub, !sec ? '输入要等待的分钟或小时'
         : sec > MAX ? '最长 99 小时'
-        : '将于' + dayLabel(Date.now() + sec * 1000) + ' ' + clock(Date.now() + sec * 1000) + ' 锁屏');
+        : off && !S.authorized ? '首次使用需管理员授权，之后到点直接关机'
+        : '将于' + dayLabel(Date.now() + sec * 1000) + ' ' + clock(Date.now() + sec * 1000) + (off ? ' 强制关机' : ' 锁屏'));
     }
   }
 
@@ -319,16 +357,34 @@ button{cursor:default}
     idle();
   }
 
+  function setMode(m) {
+    mode = m === 'shutdown' ? 'shutdown' : 'lock';
+    var off = mode === 'shutdown';
+    modes.dataset.v = mode;
+    tabs.forEach(function (t) {
+      var on = t.dataset.m === mode;
+      t.setAttribute('aria-selected', on);
+      t.tabIndex = on ? 0 : -1;
+    });
+    app.classList.toggle('is-off', off);
+    etaLab.textContent = off ? '预计关机' : '预计锁屏';
+    nowBtn.innerHTML = ICON[mode] + (off ? '立即关机' : '立即锁屏');
+    setGo();
+    setHead();
+  }
+  function setGo() { go.textContent = S.running ? '取消定时' : mode === 'shutdown' ? '开始定时关机' : '开始定时'; }
+
   // Swift 推送状态
   window.appState = function (st) {
     if (!synced && !st.running && st.value != null) { input.value = st.value; setUnit(st.unit); }
     synced = true;
     S = st;
+    if (st.mode) setMode(st.mode);
     warnSw.setAttribute('aria-checked', st.warn !== false);
     app.classList.toggle('is-run', !!st.running);
     setup.inert = !!st.running;
     run.inert = !st.running;
-    go.textContent = st.running ? '取消定时' : '开始定时';
+    setGo();
     cancelAnimationFrame(raf);
     if (st.running) {
       eta.textContent = clock(st.endMs);
@@ -348,12 +404,12 @@ button{cursor:default}
     var sec = parse();
     if (!sec || sec > MAX) { shake(); return; }
     input.blur();
-    post({ cmd: 'start', seconds: sec, value: input.value, unit: unit });
-    if (!window.webkit) window.appState({ running: true, endMs: Date.now() + sec * 1000, totalSec: sec, warn: S.warn });
+    post({ cmd: 'start', seconds: sec, value: input.value, unit: unit, mode: mode });
+    if (!window.webkit) window.appState({ running: true, endMs: Date.now() + sec * 1000, totalSec: sec, warn: S.warn, mode: mode, authorized: true });
   }
   function cancel() {
     post({ cmd: 'cancel' });
-    if (!window.webkit) window.appState({ running: false, warn: S.warn });
+    if (!window.webkit) window.appState({ running: false, warn: S.warn, mode: mode, authorized: S.authorized });
   }
 
   go.addEventListener('click', function () { S.running ? cancel() : start(); });
@@ -401,7 +457,17 @@ button{cursor:default}
     S.warn = on;
     post({ cmd: 'setWarn', on: on });
   });
-  $('#lockNow').addEventListener('click', function () { post({ cmd: 'lockNow' }); });
+  nowBtn.addEventListener('click', function () { post({ cmd: mode === 'shutdown' ? 'shutdownNow' : 'lockNow' }); });
+  tabs.forEach(function (t) {
+    t.addEventListener('click', function () { if (S.running) return; setMode(t.dataset.m); post({ cmd: 'setMode', mode: mode }); });
+  });
+  modes.addEventListener('keydown', function (e) {
+    if (S.running || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+    e.preventDefault();
+    setMode(e.key === 'ArrowLeft' ? 'lock' : 'shutdown');
+    post({ cmd: 'setMode', mode: mode });
+    modes.querySelector('[aria-selected="true"]').focus();
+  });
   document.addEventListener('contextmenu', function (e) { if (e.target !== input) e.preventDefault(); });
 
   // 空闲时每秒刷新“将于 xx:xx 锁屏”
@@ -409,6 +475,7 @@ button{cursor:default}
 
   input.value = '25';
   setUnit('min');
+  setMode('lock');
 })();
 </script>
 </body>
