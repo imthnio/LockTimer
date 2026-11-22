@@ -24,3 +24,10 @@ Mac 在倒计时中睡眠并错过关机时间时，唤醒后会先给 1 分钟�
 
 界面：[Lucian UX/UI Prompt](https://lucianlabs.dev/uxui-prompt/)（#067 / #047 / #018 / #039，MIT）。
 类似项目：[ForceLock](https://github.com/guomengtao/ForceLock)。
+
+## 赞赏支持
+
+如果这个脚本帮到了你，欢迎请我喝杯咖啡 ☕  
+微信扫一扫下方赞赏码即可：
+
+![赞赏码](./appreciate.png)
